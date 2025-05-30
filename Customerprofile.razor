@@ -1,0 +1,81 @@
+﻿@page "/customerprofile/{CustomerId:int}"
+@inject HttpClient Http
+@using BankBlazor.Client.Models
+@using System.Net.Http.Json
+
+<h3>Kundprofil</h3>
+
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <p class="text-danger">@errorMessage</p>
+}
+else if (customer == null)
+{
+    <p>Laddar...</p>
+}
+else
+{
+    <div>
+        <p><strong>Kund-ID:</strong> @customer.CustomerId</p>
+        <p><strong>Namn:</strong> @customer.Givenname @customer.Surname</p>
+        <h4>Konton</h4>
+        @if (customer.Accounts == null || !customer.Accounts.Any())
+        {
+            <p>Inga konton hittades.</p>
+        }
+        else
+        {
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Konto-ID</th>
+                        <th>Saldo</th>
+                        <th>Innehavarens namn</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var account in customer.Accounts)
+                    {
+                        <tr>
+                            <td>@account.AccountId</td>
+                            <td>@account.Balance.ToString("C")</td>
+                            <td>@account.AccountHolderName</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+}
+
+@code {
+    [Parameter]
+    public int CustomerId { get; set; }
+
+    private CustomerDTO? customer;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var response = await Http.GetAsync($"api/Customers/{CustomerId}");
+            if (response.IsSuccessStatusCode)
+            {
+                customer = await response.Content.ReadFromJsonAsync<CustomerDTO>();
+            }
+            else if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                errorMessage = "Kunden hittades inte.";
+            }
+            else
+            {
+                errorMessage = $"Fel: {response.StatusCode} - {await response.Content.ReadAsStringAsync()}";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Fel: {ex.Message}";
+        }
+    }
+}

@@ -1,0 +1,66 @@
+﻿@page "/customers"
+@inject HttpClient Http
+@using BankBlazor.Client.Models
+@using System.Net.Http.Json
+
+<h3>Kundlista</h3>
+
+@if (customers == null)
+{
+    <p>Laddar...</p>
+}
+else if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="alert alert-danger">@errorMessage</div>
+}
+else if (!customers.Any())
+{
+    <p>Inga kunder att visa.</p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Kund-ID</th>
+                <th>Namn</th>
+                <th>Åtgärder</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var customer in customers)
+            {
+                <tr>
+                    <td>@customer.CustomerId</td>
+                    <td>@customer.Givenname @customer.Surname</td>
+                    <td><a href="/customerprofile/@customer.CustomerId" class="btn btn-primary btn-sm">Visa profil</a></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<CustomerDTO>? customers;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var response = await Http.GetAsync("api/Customers");
+            if (response.IsSuccessStatusCode)
+            {
+                customers = await response.Content.ReadFromJsonAsync<List<CustomerDTO>>();
+            }
+            else
+            {
+                errorMessage = $"Fel: {response.StatusCode} - {await response.Content.ReadAsStringAsync()}";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Fel: {ex.Message}";
+        }
+    }
+}
